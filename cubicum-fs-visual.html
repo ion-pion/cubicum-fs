@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cubicum FS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d0820;
+    color: #fff;
+    font-family: 'Georgia', serif;
+    overflow-x: hidden;
+  }
+
+  .scene {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    position: relative;
+  }
+
+  /* SCENE 1 — TREE: violet bg */
+  .scene-tree {
+    background: linear-gradient(160deg, #1a0a3a 0%, #0d0820 100%);
+  }
+
+  .scene-cube {
+    background: linear-gradient(160deg, #0d0820 0%, #160535 100%);
+  }
+
+  .scene-statement {
+    background: linear-gradient(160deg, #160535 0%, #1a0a3a 100%);
+    min-height: 70vh;
+  }
+
+  .scene-burn {
+    background: linear-gradient(160deg, #1a0a3a 0%, #0d0820 100%);
+    min-height: 70vh;
+  }
+
+  /* TREE SVG */
+  .tree-wrap {
+    margin-bottom: 2.5rem;
+  }
+
+  canvas { display: block; }
+
+  /* TEXT */
+  .big-text {
+    font-size: clamp(1.8rem, 5vw, 3.2rem);
+    font-weight: normal;
+    text-align: center;
+    line-height: 1.3;
+    max-width: 600px;
+    color: #ffd700;
+  }
+
+  .big-text em {
+    font-style: normal;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(200,160,255,0.8);
+  }
+
+  .big-text.old-way {
+    color: #9070c0;
+    font-size: clamp(1.3rem, 3.5vw, 2.2rem);
+  }
+
+  .small-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.3em;
+    color: #6040a0;
+    text-transform: uppercase;
+    margin-top: 1rem;
+    text-align: center;
+  }
+
+  .vs {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: #4a2a80;
+    text-align: center;
+    padding: 1.2rem 0;
+    border-top: 1px solid #2a1550;
+    border-bottom: 1px solid #2a1550;
+    width: 100%;
+    background: #0d0820;
+  }
+
+  .statement {
+    font-size: clamp(1rem, 3.2vw, 1.55rem);
+    text-align: center;
+    max-width: 520px;
+    line-height: 1.9;
+    color: #a080d0;
+  }
+
+  .statement strong { color: #ffd700; font-weight: normal; }
+  .statement .white { color: #fff; }
+
+  /* BURN ROWS */
+  .burn-visual {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    width: 100%;
+    max-width: 420px;
+    margin-bottom: 2.5rem;
+  }
+
+  .burn-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.4rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+  }
+
+  .burn-row .icon { font-size: 1.1rem; flex-shrink: 0; }
+  .burn-row .label { flex: 1; }
+  .burn-row .count { color: #6040a0; }
+
+  .burn-row.inner  { background: rgba(255,80,30,0.12); border: 1px solid rgba(255,80,30,0.3); color: #ff7050; }
+  .burn-row.face   { background: rgba(180,80,255,0.1); border: 1px solid rgba(180,80,255,0.25); color: #c080ff; }
+  .burn-row.edge   { background: rgba(160,100,255,0.08); border: 1px solid rgba(160,100,255,0.2); color: #a070e0; }
+  .burn-row.corner { background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.4); color: #ffd700; }
+
+  .burn-row.burned { opacity: 0.2; text-decoration: line-through; }
+
+  footer {
+    text-align: center;
+    padding: 4rem 2rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: #3a1a60;
+    border-top: 1px solid #2a1550;
+    background: #0d0820;
+  }
+  footer span { color: #6040a0; }
+
+  .fade-up {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .fade-up.on { opacity: 1; transform: none; }
+
+  .cube-scene {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- SCENE 1: THE TREE -->
+<div class="scene scene-tree">
+  <div class="tree-wrap fade-up">
+    <svg width="300" height="300" viewBox="0 0 300 300">
+      <!-- Background hint -->
+      <circle cx="150" cy="150" r="140" fill="rgba(100,50,200,0.05)"/>
+
+      <!-- All edges in gold/violet, clearly visible -->
+      <!-- Root to L1 -->
+      <line x1="150" y1="280" x2="80" y2="210" stroke="#7c3aed" stroke-width="2"/>
+      <line x1="150" y1="280" x2="220" y2="210" stroke="#7c3aed" stroke-width="2"/>
+      <!-- L1 to L2 -->
+      <line x1="80" y1="210" x2="40" y2="150" stroke="#6030c0" stroke-width="1.5"/>
+      <line x1="80" y1="210" x2="110" y2="150" stroke="#6030c0" stroke-width="1.5"/>
+      <line x1="220" y1="210" x2="185" y2="150" stroke="#6030c0" stroke-width="1.5"/>
+      <line x1="220" y1="210" x2="255" y2="150" stroke="#6030c0" stroke-width="1.5"/>
+      <!-- L2 to L3 -->
+      <line x1="40" y1="150" x2="22" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <line x1="40" y1="150" x2="55" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <line x1="110" y1="150" x2="97" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <line x1="110" y1="150" x2="123" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <line x1="185" y1="150" x2="172" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <line x1="185" y1="150" x2="198" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <line x1="255" y1="150" x2="242" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <line x1="255" y1="150" x2="268" y2="95" stroke="#4a20a0" stroke-width="1.2"/>
+      <!-- L3 to L4 tiny -->
+      <line x1="22" y1="95" x2="14" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+      <line x1="22" y1="95" x2="30" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+      <line x1="55" y1="95" x2="48" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+      <line x1="55" y1="95" x2="63" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+      <line x1="242" y1="95" x2="235" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+      <line x1="242" y1="95" x2="249" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+      <line x1="268" y1="95" x2="262" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+      <line x1="268" y1="95" x2="275" y2="58" stroke="#3a1580" stroke-width="0.9"/>
+
+      <!-- Root node — GOLD, prominent -->
+      <circle cx="150" cy="280" r="10" fill="#ffd700"/>
+      <circle cx="150" cy="280" r="16" fill="rgba(255,215,0,0.15)"/>
+
+      <!-- L1 nodes -->
+      <circle cx="80" cy="210" r="7" fill="#c090ff"/>
+      <circle cx="220" cy="210" r="7" fill="#c090ff"/>
+
+      <!-- L2 nodes -->
+      <circle cx="40" cy="150" r="5" fill="#9060d0"/>
+      <circle cx="110" cy="150" r="5" fill="#9060d0"/>
+      <circle cx="185" cy="150" r="5" fill="#9060d0"/>
+      <circle cx="255" cy="150" r="5" fill="#9060d0"/>
+
+      <!-- L3 nodes -->
+      <circle cx="22" cy="95" r="3.5" fill="#6040a0"/>
+      <circle cx="55" cy="95" r="3.5" fill="#6040a0"/>
+      <circle cx="97" cy="95" r="3.5" fill="#6040a0"/>
+      <circle cx="123" cy="95" r="3.5" fill="#6040a0"/>
+      <circle cx="172" cy="95" r="3.5" fill="#6040a0"/>
+      <circle cx="198" cy="95" r="3.5" fill="#6040a0"/>
+      <circle cx="242" cy="95" r="3.5" fill="#6040a0"/>
+      <circle cx="268" cy="95" r="3.5" fill="#6040a0"/>
+
+      <!-- L4 tiny -->
+      <circle cx="14" cy="58" r="2" fill="#4a2a80"/>
+      <circle cx="30" cy="58" r="2" fill="#4a2a80"/>
+      <circle cx="48" cy="58" r="2" fill="#4a2a80"/>
+      <circle cx="63" cy="58" r="2" fill="#4a2a80"/>
+      <circle cx="235" cy="58" r="2" fill="#4a2a80"/>
+      <circle cx="249" cy="58" r="2" fill="#4a2a80"/>
+      <circle cx="262" cy="58" r="2" fill="#4a2a80"/>
+      <circle cx="275" cy="58" r="2" fill="#4a2a80"/>
+
+      <!-- ONE ROOT label -->
+      <text x="150" y="298" fill="#ffd700" font-size="9" font-family="Courier New" text-anchor="middle" letter-spacing="3" opacity="0.8">ONE ROOT</text>
+    </svg>
+  </div>
+  <p class="big-text old-way fade-up">Every tree has<br>one root.</p>
+  <p class="small-text fade-up">unix · fat · ntfs · ext4 · btrfs</p>
+</div>
+
+<div class="vs fade-up">↓ &nbsp; but &nbsp; ↓</div>
+
+<!-- SCENE 2: THE CUBE -->
+<div class="scene scene-cube">
+  <div class="cube-scene">
+    <canvas id="mainCube" width="320" height="320"></canvas>
+    <p class="big-text fade-up">Every cube has <em>eight.</em></p>
+    <p class="small-text fade-up">cubicum fs · z7³ · 343 nodes</p>
+  </div>
+</div>
+
+<div class="vs fade-up">↓</div>
+
+<!-- SCENE 3: STATEMENT -->
+<div class="scene scene-statement">
+  <p class="statement fade-up">
+    <strong>No center.</strong> No periphery.<br>
+    No file is deep. No file is far.<br><br>
+    Every node is at most<br>
+    <span class="white" style="font-size:1.5em;color:#ffd700">3 steps</span><br>
+    from any of the eight roots.<br><br>
+    <strong>The torus closes.</strong><br>
+    <span style="color:#7050b0">Distance wraps. The edge<br>becomes the center.</span>
+  </p>
+</div>
+
+<div class="vs fade-up">↓</div>
+
+<!-- SCENE 4: BURN -->
+<div class="scene scene-burn">
+  <p class="big-text fade-up" style="margin-bottom:2.5rem;font-size:clamp(1.4rem,4vw,2.4rem);">
+    At session end —<br><em>Burn.</em>
+  </p>
+  <div class="burn-visual fade-up">
+    <div class="burn-row inner burned">
+      <span class="icon">🔥</span>
+      <span class="label">Inner nodes</span>
+      <span class="count">125</span>
+    </div>
+    <div class="burn-row face burned">
+      <span class="icon">🔥</span>
+      <span class="label">Face nodes</span>
+      <span class="count">150</span>
+    </div>
+    <div class="burn-row edge burned">
+      <span class="icon">🔥</span>
+      <span class="label">Edge nodes</span>
+      <span class="count">60</span>
+    </div>
+    <div class="burn-row corner">
+      <span class="icon">✦</span>
+      <span class="label">Corner nodes — Ash</span>
+      <span class="count">8</span>
+    </div>
+  </div>
+  <p class="statement fade-up" style="font-size:0.95rem;max-width:400px;">
+    The coordinates survive.<br>
+    The geometry survives.<br><br>
+    <strong>Salamandra knows <em style="color:#fff">where</em> things were.</strong><br>
+    <span style="color:#6040a0">Not what they were.</span>
+  </p>
+</div>
+
+<footer>
+  CUBICUM FS · Z7³ · JAHBALON RESEARCH · IAȘI · 2026<br><br>
+  <span>E pur si torque</span>
+</footer>
+
+<script>
+// MAIN CUBE
+const canvas = document.getElementById('mainCube');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const verts = [
+  [-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
+  [-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]
+];
+const edges = [
+  [0,1],[1,2],[2,3],[3,0],
+  [4,5],[5,6],[6,7],[7,4],
+  [0,4],[1,5],[2,6],[3,7]
+];
+
+let t = 0;
+
+function ry(v,a){ return [v[0]*Math.cos(a)+v[2]*Math.sin(a), v[1], -v[0]*Math.sin(a)+v[2]*Math.cos(a)]; }
+function rx(v,a){ return [v[0], v[1]*Math.cos(a)-v[2]*Math.sin(a), v[1]*Math.sin(a)+v[2]*Math.cos(a)]; }
+function proj(v){ const z=v[2]+3.5, s=Math.min(W,H)*0.38; return [v[0]/z*s+W/2, v[1]/z*s+H/2, v[2]]; }
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // Violet background glow
+  const bgGrd = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.6);
+  bgGrd.addColorStop(0,'rgba(100,40,200,0.08)');
+  bgGrd.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = bgGrd;
+  ctx.fillRect(0,0,W,H);
+
+  t += 0.006;
+  const rotated = verts.map(v => rx(ry(v,t), t*0.35));
+  const projected = rotated.map(v => proj(v));
+
+  // Dashed inner diagonals
+  ctx.setLineDash([3,9]);
+  for(let i=0;i<8;i++) for(let j=i+2;j<8;j++){
+    if(edges.some(e=>(e[0]===i&&e[1]===j)||(e[0]===j&&e[1]===i))) continue;
+    const az=(rotated[i][2]+rotated[j][2])/2;
+    const alpha=0.04+(az+1)/2*0.07;
+    ctx.beginPath();
+    ctx.moveTo(projected[i][0],projected[i][1]);
+    ctx.lineTo(projected[j][0],projected[j][1]);
+    ctx.strokeStyle=`rgba(150,80,255,${alpha})`;
+    ctx.lineWidth=0.6;
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Main edges — violet to purple
+  edges.forEach(([a,b])=>{
+    const az=(rotated[a][2]+rotated[b][2])/2;
+    const alpha=0.3+(az+1)/2*0.5;
+    ctx.beginPath();
+    ctx.moveTo(projected[a][0],projected[a][1]);
+    ctx.lineTo(projected[b][0],projected[b][1]);
+    ctx.strokeStyle=`rgba(160,80,255,${alpha})`;
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+  });
+
+  // Corner nodes — gold with glow
+  projected.forEach((p,i)=>{
+    const z=rotated[i][2];
+    const size=4+(z+1)*2.5;
+    const alpha=0.6+(z+1)/2*0.4;
+
+    // Outer glow
+    const grd=ctx.createRadialGradient(p[0],p[1],0,p[0],p[1],size*4);
+    grd.addColorStop(0,`rgba(255,215,0,${alpha*0.35})`);
+    grd.addColorStop(1,'rgba(255,215,0,0)');
+    ctx.beginPath();
+    ctx.arc(p[0],p[1],size*4,0,Math.PI*2);
+    ctx.fillStyle=grd;
+    ctx.fill();
+
+    // Node
+    ctx.beginPath();
+    ctx.arc(p[0],p[1],size,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,215,0,${alpha})`;
+    ctx.fill();
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+// Scroll reveal
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('on'); });
+},{threshold:0.12});
+document.querySelectorAll('.fade-up').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
